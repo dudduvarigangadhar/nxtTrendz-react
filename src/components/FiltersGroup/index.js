@@ -16,7 +16,7 @@ const FiltersGroup = props => {
 
       <p className="rating-content">Rating</p>
       {ratingsList.map(eachItem => (
-        <li className="rating-list-container">
+        <li className="rating-list-container" key={eachItem.ratingId}>
           <button type="button" className="rating-button">
             <img
               src={eachItem.imageUrl}
