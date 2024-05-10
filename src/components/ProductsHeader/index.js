@@ -9,12 +9,17 @@ const ProductsHeader = props => {
     changeSortby(event.target.value)
   }
 
-  const {sortbyOptions, activeOptionId} = props
+  const {sortbyOptions, activeOptionId, onSearchChange} = props
 
   return (
     <div className="products-header">
       <div className="input-container">
-        <input type="search" className="input-field" placeholder="Search" />
+        <input
+          type="search"
+          className="input-field"
+          placeholder="Search"
+          onChange={onSearchChange}
+        />
         <BsSearch />
       </div>
 
