@@ -70,11 +70,34 @@ class AllProductsSection extends Component {
     productsList: [],
     isLoading: false,
     activeOptionId: sortbyOptions[0].optionId,
+    searchInput: '',
+    category: 'Clothing',
+    rating: '',
   }
 
   componentDidMount() {
     this.getProducts()
   }
+
+  onApiFailureView = () => (
+    <div>
+      <img
+        src="https://assets.ccbp.in/frontend/react-js/nxt-trendz/nxt-trendz-products-error-view.png"
+        alt="products failure"
+        className="products-failure-view"
+      />
+    </div>
+  )
+
+  onApiEmptyView = () => (
+    <div>
+      <img
+        src="https://assets.ccbp.in/frontend/react-js/nxt-trendz/nxt-trendz-no-products-view.png"
+        alt="no products"
+        className="no-products-view"
+      />
+    </div>
+  )
 
   getProducts = async () => {
     this.setState({
@@ -84,8 +107,8 @@ class AllProductsSection extends Component {
 
     // TODO: Update the code to get products with filters applied
 
-    const {activeOptionId} = this.state
-    const apiUrl = `https://apis.ccbp.in/products?sort_by=${activeOptionId}`
+    const {activeOptionId, searchInput, category, rating} = this.state
+    const apiUrl = `https://apis.ccbp.in/products?sort_by=${activeOptionId}&category=${category}&title_search=${searchInput}&rating=${rating} `
     const options = {
       headers: {
         Authorization: `Bearer ${jwtToken}`,
@@ -107,7 +130,16 @@ class AllProductsSection extends Component {
         productsList: updatedData,
         isLoading: false,
       })
+    } else {
+      console.log(response)
+      this.setState({isLoading: false}, this.onApiFailureView)
+      //   this.onApiFailureView()
     }
+  }
+
+  onSearchChange = event => {
+    this.setState({searchInput: event.target.value})
+    // console.log(event.target.value)
   }
 
   changeSortby = activeOptionId => {
@@ -116,7 +148,9 @@ class AllProductsSection extends Component {
 
   renderProductsList = () => {
     const {productsList, activeOptionId} = this.state
-
+    // const isEmpty = productsList.length === 0
+    const isEmpty = false
+    console.log(isEmpty)
     // TODO: Add No Products View
     return (
       <div className="all-products-container">
@@ -124,16 +158,20 @@ class AllProductsSection extends Component {
           activeOptionId={activeOptionId}
           sortbyOptions={sortbyOptions}
           changeSortby={this.changeSortby}
+          onSearchChange={this.onSearchChange}
         />
         <div className="products-list-container">
           <FiltersGroup
             categoryOptions={categoryOptions}
             ratingsList={ratingsList}
           />
+
           <ul className="products-list">
-            {productsList.map(product => (
-              <ProductCard productData={product} key={product.id} />
-            ))}
+            {isEmpty
+              ? this.onApiEmptyView()
+              : productsList.map(product => (
+                  <ProductCard productData={product} key={product.id} />
+                ))}
           </ul>
         </div>
       </div>
