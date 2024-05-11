@@ -65,50 +65,69 @@ const ratingsList = [
   },
 ]
 
+const apiConstantsStatus = {
+  initial: 'INITIAL',
+  success: 'SUCCESS',
+  failure: 'FAILURE',
+  inProgress: 'IN_PROGRESS',
+}
+
 class AllProductsSection extends Component {
   state = {
     productsList: [],
-    isLoading: false,
+
+    apiStatus: apiConstantsStatus.initial,
     activeOptionId: sortbyOptions[0].optionId,
     searchInput: '',
-    category: 'Clothing',
-    rating: '',
+    activeCategoryId: '',
+    activeRatingId: '',
   }
 
   componentDidMount() {
     this.getProducts()
   }
 
-  onApiFailureView = () => (
+  renderFailureView = () => (
     <div>
       <img
         src="https://assets.ccbp.in/frontend/react-js/nxt-trendz/nxt-trendz-products-error-view.png"
         alt="products failure"
         className="products-failure-view"
       />
+      <h1>Oops! Something Went Wrong</h1>
+      <p>
+        We are having some trouble processing your request. Please try again.
+      </p>
     </div>
   )
 
-  onApiEmptyView = () => (
+  renderNoProductsView = () => (
     <div>
       <img
         src="https://assets.ccbp.in/frontend/react-js/nxt-trendz/nxt-trendz-no-products-view.png"
         alt="no products"
         className="no-products-view"
       />
+      <h1>No Products Found</h1>
+      <p>We could bot find any products. Try other filters.</p>
     </div>
   )
 
   getProducts = async () => {
     this.setState({
-      isLoading: true,
+      apiStatus: apiConstantsStatus.inProgress,
     })
     const jwtToken = Cookies.get('jwt_token')
 
     // TODO: Update the code to get products with filters applied
 
-    const {activeOptionId, searchInput, category, rating} = this.state
-    const apiUrl = `https://apis.ccbp.in/products?sort_by=${activeOptionId}&category=${category}&title_search=${searchInput}&rating=${rating} `
+    const {
+      activeOptionId,
+      searchInput,
+      activeCategoryId,
+      activeRatingId,
+    } = this.state
+    const apiUrl = `https://apis.ccbp.in/products?sort_by=${activeOptionId}&category=${activeCategoryId}&title_search=${searchInput}&rating=${activeRatingId} `
     const options = {
       headers: {
         Authorization: `Bearer ${jwtToken}`,
@@ -128,18 +147,59 @@ class AllProductsSection extends Component {
       }))
       this.setState({
         productsList: updatedData,
-        isLoading: false,
+
+        apiStatus: apiConstantsStatus.success,
       })
     } else {
       console.log(response)
-      this.setState({isLoading: false}, this.onApiFailureView)
-      //   this.onApiFailureView()
+      this.setState(
+        {
+          apiStatus: apiConstantsStatus.failure,
+        },
+        this.onApiFailureView,
+      )
     }
   }
 
-  onSearchChange = event => {
+  renderViews = () => {
+    const {apiStatus} = this.state
+    switch (apiStatus) {
+      case apiConstantsStatus.inProgress:
+        return this.renderLoader()
+      case apiConstantsStatus.success:
+        return this.renderProductsList()
+      case apiConstantsStatus.failure:
+        return this.renderFailureView()
+      default:
+        return null
+    }
+  }
+
+  onClearFilters = () => {
+    this.setState(
+      {
+        searchInput: '',
+        activeCategoryId: '',
+        activeRatingId: '',
+      },
+      this.getProducts,
+    )
+  }
+
+  changeRating = activeRatingId => {
+    this.setState({activeRatingId}, this.getProducts)
+  }
+
+  changeCategory = activeCategoryId => {
+    this.setState({activeCategoryId}, this.getProducts)
+  }
+
+  onChangeSearch = event => {
     this.setState({searchInput: event.target.value})
-    // console.log(event.target.value)
+  }
+
+  enterSearchInput = () => {
+    this.getProducts()
   }
 
   changeSortby = activeOptionId => {
@@ -148,11 +208,11 @@ class AllProductsSection extends Component {
 
   renderProductsList = () => {
     const {productsList, activeOptionId} = this.state
-    // const isEmpty = productsList.length === 0
-    const isEmpty = false
-    console.log(isEmpty)
+    const shouldShowProductsList = productsList.length > 0
+
+    console.log(productsList)
     // TODO: Add No Products View
-    return (
+    return shouldShowProductsList ? (
       <div className="all-products-container">
         <ProductsHeader
           activeOptionId={activeOptionId}
@@ -160,21 +220,14 @@ class AllProductsSection extends Component {
           changeSortby={this.changeSortby}
           onSearchChange={this.onSearchChange}
         />
-        <div className="products-list-container">
-          <FiltersGroup
-            categoryOptions={categoryOptions}
-            ratingsList={ratingsList}
-          />
-
-          <ul className="products-list">
-            {isEmpty
-              ? this.onApiEmptyView()
-              : productsList.map(product => (
-                  <ProductCard productData={product} key={product.id} />
-                ))}
-          </ul>
-        </div>
+        <ul className="products-list">
+          {productsList.map(product => (
+            <ProductCard productData={product} key={product.id} />
+          ))}
+        </ul>
       </div>
+    ) : (
+      this.renderNoProductsView()
     )
   }
 
@@ -187,13 +240,23 @@ class AllProductsSection extends Component {
   // TODO: Add failure view
 
   render() {
-    const {isLoading} = this.state
+    const {activeCategoryId, activeRatingId, searchInput} = this.state
 
     return (
       <div className="all-products-section">
-        {/* TODO: Update the below element */}
-
-        {isLoading ? this.renderLoader() : this.renderProductsList()}
+        <FiltersGroup
+          searchInput={searchInput}
+          categoryOptions={categoryOptions}
+          ratingsList={ratingsList}
+          onChangeSearch={this.onChangeSearch}
+          enterSearchInput={this.enterSearchInput}
+          activeCategoryId={activeCategoryId}
+          activeRatingId={activeRatingId}
+          changeCategory={this.changeCategory}
+          changeRating={this.changeRating}
+          onClearFilters={this.onClearFilters}
+        />
+        {this.renderViews()}
       </div>
     )
   }
